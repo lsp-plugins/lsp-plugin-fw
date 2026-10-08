@@ -183,9 +183,15 @@ namespace lsp
             if (rs != NULL)
             {
                 if (!strcmp(name, "min"))
+                {
                     sBegin.sMin.sExpr.parse(value);
+                    sEnd.sMin.sExpr.parse(value);
+                }
                 else if (!strcmp(name, "max"))
+                {
+                    sBegin.sMax.sExpr.parse(value);
                     sEnd.sMax.sExpr.parse(value);
+                }
 
                 bind_param(&sBegin, "start", name, value);
                 bind_param(&sBegin, "begin", name, value);
@@ -277,6 +283,8 @@ namespace lsp
             if (meta == NULL)
                 return value;
 
+            const bool is_log   = (nFlags & GF_LOG_SET) ? (nFlags & GF_LOG) : meta::is_log_rule(meta);
+
             if (is_gain_unit(meta->unit)) // Gain
             {
                 float base      = (meta->unit == meta::U_GAIN_AMP) ? float(M_LN10 * 0.05f) : float(M_LN10 * 0.1f);
@@ -289,7 +297,7 @@ namespace lsp
             {
                 value          = truncf(value);
             }
-            else if (nFlags & GF_LOG)  // Float and other values, logarithmic
+            else if (is_log)  // Float and other values, logarithmic
             {
                 double thresh   = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
                 value           = exp(value);
@@ -303,25 +311,61 @@ namespace lsp
 
         float RangeSlider::encode_value(ui::IPort *p, float value)
         {
-            const meta::port_t *meta    = (p != NULL) ? p->metadata() : NULL;
+            const meta::port_t * const meta = (p != NULL) ? p->metadata() : NULL;
             if (meta == NULL)
                 return value;
 
-            if (is_gain_unit(meta->unit)) // Decibels
+            const bool is_log   = (nFlags & GF_LOG_SET) ? (nFlags & GF_LOG) : meta::is_log_rule(meta);
+            const bool has_step     = (nFlags & GF_STEP) || (meta->flags & meta::F_STEP);
+            float step              = (nFlags & GF_STEP) ? fStep : (has_step) ? meta->step : 0.0f;
+            const float thresh      = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+
+            if (meta::is_gain_unit(meta->unit)) // Decibels
             {
-                double base = (meta->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
-                if (value < GAIN_AMP_M_120_DB)
-                    value           = GAIN_AMP_M_120_DB;
-                value   = base * log(value);
+                const float base        = (meta->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
+                step                    = base * logf((has_step) ? fStep + 1.0f : 1.01f) * 0.1f;
+
+                value                   = (fabsf(value) < thresh) ? (base * logf(thresh) - step) : (base * logf(value));
             }
-            else if (nFlags & GF_LOG)
+            else if (is_log)
             {
-                if (value < GAIN_AMP_M_120_DB)
-                    value           = GAIN_AMP_M_120_DB;
-                value   = logf(value);
+                step                    = logf((meta->flags & meta::F_STEP) ? meta->step + 1.0f : 1.01f);
+
+                value                   = (fabsf(value) < thresh)       ? logf(thresh) - step : logf(value);
             }
 
             return value;
+        }
+
+        float RangeSlider::encode_range(ui::IPort *p, float range)
+        {
+            const meta::port_t * const meta = (p != NULL) ? p->metadata() : NULL;
+            if (meta == NULL)
+                return range;
+
+            const bool is_log   = (nFlags & GF_LOG_SET) ? (nFlags & GF_LOG) : meta::is_log_rule(meta);
+
+            if (meta::is_gain_unit(meta->unit)) // Decibels
+            {
+                const float base        = (meta->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
+                range                   = base*logf(range);
+            }
+            else if (is_log)
+                range                   = logf(range);
+
+            return range;
+        }
+
+        float RangeSlider::get_step(ui::IPort *p)
+        {
+            const meta::port_t * const meta = (p != NULL) ? p->metadata() : NULL;
+            const bool has_step     = (nFlags & GF_STEP) || ((meta != NULL) && (meta->flags & meta::F_STEP));
+            float step              = (nFlags & GF_STEP) ? fStep : (has_step) ? meta->step : 0.0f;
+
+            if ((meta::is_gain_unit(meta->unit)) || (meta::is_log_rule(meta))) // Decibels
+                step                   *= 10.0f;
+
+            return step;
         }
 
         size_t RangeSlider::notify_value(value_t *v, ui::IPort *port, size_t nf_flag)
@@ -423,7 +467,7 @@ namespace lsp
 
         void RangeSlider::end_param(param_t *p)
         {
-            const meta::port_t * const meta = (p->sValue.pPort != NULL) ? meta : NULL;
+            const meta::port_t * const meta = (p->sValue.pPort != NULL) ? p->sValue.pPort->metadata() : NULL;
             if (!end_value(&p->sMin))
                 p->sMin.fValue  = ((meta != NULL) && (meta->flags & meta::F_LOWER)) ? meta->min : 0.0f;
             if (!end_value(&p->sMax))
@@ -568,7 +612,7 @@ namespace lsp
         void RangeSlider::commit_values(size_t flags)
         {
             // Ensure that widget is set
-            tk::RangeSlider *rs = tk::widget_cast<tk::RangeSlider>(wWidget);
+            tk::RangeSlider * const rs  = tk::widget_cast<tk::RangeSlider>(wWidget);
             if (rs == NULL)
                 return;
 
@@ -576,101 +620,70 @@ namespace lsp
                 lsp_trace("debug");
 
             // Initialize configuration
-            param_t * const begin   = &vParams[PT_BEGIN];
-            param_t * const end     = &vParams[PT_END];
-            float abs_min           = vParams[PT_MIN].fMin;
-            float abs_max           = vParams[PT_MAX].fMax;
-            float abs_range         = vParams[PT_RANGE].fMin;
+            sBegin.sValue.fValue    = lsp_xlimit(sBegin.sValue.fValue, sBegin.sMin.fValue, sBegin.sMax.fValue);
+            sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
+
+            const float abs_min     = lsp_min(sBegin.sMin.fValue, sEnd.sMin.fValue);
+            const float abs_max     = lsp_max(sBegin.sMax.fValue, sEnd.sMax.fValue);
+            const float abs_range   = sRange.fValue;
 
             // Apply value constraints
-            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
-            {
-                param_t * const rp      = &vParams[i];
-                rp->fValue              = lsp_xlimit(rp->fValue, rp->fMin, rp->fMax);
-                rp->fValue              = lsp_xlimit(rp->fValue, abs_min, abs_max);
-            }
-            if ((begin->pPort != NULL) && (end->pPort != NULL))
+            if ((sBegin.sValue.pPort != NULL) && (sEnd.sValue.pPort != NULL))
             {
                 if (flags & NF_BEGIN)
                 {
-                    if (is_log_range(begin->pPort))
-                        end->fValue     = lsp_max(begin->fValue * logf(abs_range), end->fValue);
+                    if (is_log_range(sBegin.sValue.pPort))
+                        sEnd.sValue.fValue      = lsp_max(sBegin.sValue.fValue * logf(abs_range), sEnd.sValue.fValue);
                     else
-                        end->fValue     = lsp_max(begin->fValue + abs_range, end->fValue);
-                    end->fValue     = lsp_xlimit(end->fValue, end->fMin, end->fMax);
-                    end->fValue     = lsp_xlimit(end->fValue, abs_min, abs_max);
+                        sEnd.sValue.fValue      = lsp_max(sBegin.sValue.fValue + abs_range, sEnd.sValue.fValue);
+                    sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
+                    sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, abs_min, abs_max);
                 }
                 else if (flags & NF_END)
                 {
-                    if (is_log_range(end->pPort))
-                        begin->fValue   = lsp_min(end->fValue / logf(abs_range), begin->fValue);
+                    if (is_log_range(sBegin.sValue.pPort))
+                        sBegin.sValue.fValue    = lsp_min(sEnd.sValue.fValue / logf(abs_range), sBegin.sValue.fValue);
                     else
-                        begin->fValue   = lsp_min(end->fValue - abs_range, begin->fValue);
-                    begin->fValue   = lsp_xlimit(begin->fValue, begin->fMin, begin->fMax);
-                    begin->fValue   = lsp_xlimit(begin->fValue, abs_min, abs_max);
+                        sBegin.sValue.fValue    = lsp_min(sEnd.sValue.fValue - abs_range, sBegin.sValue.fValue);
+                    sBegin.sValue.fValue    = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
+                    sBegin.sValue.fValue    = lsp_xlimit(sEnd.sValue.fValue, abs_min, abs_max);
                 }
-            }
-
-            float v_begin           = begin->fValue;
-            float v_end             = end->fValue;
-            const meta::port_t *p   = (begin->pPort != NULL) ? begin->pPort->metadata() : NULL;
-            if (p == NULL)
-                p                       = (end->pPort != NULL) ? end->pPort->metadata() : NULL;
-            const meta::unit_t unit = (p != NULL) ? p->unit : meta::U_NONE;
-            const bool has_step     = (nFlags & GF_STEP) || ((p != NULL) && (p->flags & meta::F_STEP));
-            float step              = (nFlags & GF_STEP) ? fStep : (has_step) ? p->step : 0.0f;
-
-            if (meta::is_gain_unit(unit)) // Decibels
-            {
-                const float base        = (unit == meta::U_GAIN_AMP) ? 20.0f / M_LN10 : 10.0f / M_LN10;
-                const float thresh      = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
-                step                    = base * logf((has_step) ? fStep + 1.0f : 1.01f) * 0.1f;
-
-                abs_min                 = (fabsf(abs_min) < thresh) ? (base * logf(thresh) - step) : (base * logf(abs_min));
-                abs_max                 = (fabsf(abs_max) < thresh) ? (base * logf(thresh) - step) : (base * logf(abs_max));
-                abs_range               = (base * logf(abs_range));
-                v_begin                 = (fabsf(v_begin) < thresh) ? (base * logf(thresh) - step) : (base * logf(v_begin));
-                v_end                   = (fabsf(v_end) < thresh)   ? (base * logf(thresh) - step) : (base * logf(v_end));
-
-                step                   *= 10.0f;
-            }
-            else if ((p != NULL) && (meta::is_log_rule(p)))  // Float and other values, logarithmic
-            {
-                const float thresh      = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
-
-                step                    = logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
-                abs_min                 = (fabsf(abs_min) < thresh)     ? logf(thresh) - step : logf(abs_min);
-                abs_max                 = (fabsf(abs_max) < thresh)     ? logf(thresh) - step : logf(abs_max);
-                abs_range               = logf(abs_range);
-                v_begin                 = (fabsf(v_begin) < thresh)     ? logf(thresh) - step : logf(v_begin);
-                v_end                   = (fabsf(v_end) < thresh)       ? logf(thresh) - step : logf(v_end);
-
-                step                   *= 10.0f;
             }
 
             if ((wWidget != NULL) && (wWidget->tag()->get() == 102))
                 lsp_trace("debug");
 
+            // Set step
+            ui::IPort * const refp  = (sBegin.sValue.pPort != NULL) ? sBegin.sValue.pPort : sEnd.sValue.pPort;
+            const float v_step      = get_step(refp);
+            rs->step()->set(v_step);
+
             // Initialize slider
-            switch (flags & (NF_MIN | NF_MAX))
+            if (flags & (NF_BEGIN | NF_BEGIN_MIN | NF_BEGIN_MAX))
             {
-                case NF_MIN | NF_MAX:
-                    rs->limits()->set(abs_min, abs_max);
-                    break;
-                case NF_MIN:
-                    rs->limits()->set_min(abs_min);
-                    break;
-                case NF_MAX:
-                    rs->limits()->set_max(abs_max);
-                    break;
-                default:
-                    break;
+                ui::IPort * const p = sBegin.sValue.pPort;
+                const float v_begin = (flags & NF_BEGIN) ? encode_value(p, sBegin.sValue.fValue) : rs->begin()->get();
+                const float v_min   = (flags & NF_BEGIN_MIN) ? encode_value(p, sBegin.sMin.fValue) : rs->begin()->min();
+                const float v_max   = (flags & NF_BEGIN_MAX) ? encode_value(p, sBegin.sMax.fValue) : rs->begin()->max();
+
+                rs->begin()->set_all(v_begin, v_min, v_max);
+                rs->step()->set(v_step);
             }
+            if (flags & (NF_END | NF_END_MIN | NF_END_MAX))
+            {
+                ui::IPort * const p = sEnd.sValue.pPort;
+                const float v_end   = (flags & NF_END) ? encode_value(p, sEnd.sValue.fValue) : rs->end()->get();
+                const float v_min   = (flags & NF_END_MIN) ? encode_value(p, sEnd.sMin.fValue) : rs->end()->min();
+                const float v_max   = (flags & NF_END_MAX) ? encode_value(p, sEnd.sMax.fValue) : rs->end()->max();
+
+                rs->begin()->set_all(v_end, v_min, v_max);
+            }
+
             if (flags & NF_RANGE)
-                rs->distance()->set(abs_range);
-            if (flags & (NF_BEGIN | NF_END))
-                rs->values()->set(v_begin, v_end);
-            rs->step()->set(step);
+            {
+                const float range       = encode_range(refp, abs_range);
+                rs->distance()->set(range);
+            }
         }
 
         status_t RangeSlider::slot_change(tk::Widget *sender, void *ptr, void *data)

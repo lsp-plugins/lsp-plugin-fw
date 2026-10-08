@@ -105,8 +105,6 @@ namespace lsp
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 static void         construct_param(param_t *p);
                 static void         construct_value(value_t *v);
-                static float        decode_value(ui::IPort *p, float value);
-                static float        encode_value(ui::IPort *p, float value);
                 static float        calc_default_value(param_t *p);
 
             protected:
@@ -123,6 +121,10 @@ namespace lsp
                 void                end_param(param_t *p);
                 bool                end_value(value_t *v);
                 void                submit_values(float begin, float end, bool begin_ch, bool end_ch, size_t flags);
+                float               encode_value(ui::IPort *p, float value);
+                float               encode_range(ui::IPort *p, float value);
+                float               get_step(ui::IPort *p);
+                float               decode_value(ui::IPort *p, float value);
 
             public:
                 explicit RangeSlider(ui::IWrapper *wrapper, tk::RangeSlider *widget);
