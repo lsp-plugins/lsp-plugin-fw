@@ -315,7 +315,7 @@ namespace lsp
             if (meta == NULL)
                 return value;
 
-            const bool is_log   = (nFlags & GF_LOG_SET) ? (nFlags & GF_LOG) : meta::is_log_rule(meta);
+            const bool is_log       = (nFlags & GF_LOG_SET) ? (nFlags & GF_LOG) : meta::is_log_rule(meta);
             const bool has_step     = (nFlags & GF_STEP) || (meta->flags & meta::F_STEP);
             float step              = (nFlags & GF_STEP) ? fStep : (has_step) ? meta->step : 0.0f;
             const float thresh      = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
@@ -452,14 +452,14 @@ namespace lsp
 
         bool RangeSlider::end_value(value_t *v)
         {
-            if (v->sExpr.valid())
-            {
-                v->fValue           = v->sExpr.evaluate_float();
-                return true;
-            }
             if (v->pPort != NULL)
             {
                 v->fValue           = v->pPort->value();
+                return true;
+            }
+            if (v->sExpr.valid())
+            {
+                v->fValue           = v->sExpr.evaluate_float();
                 return true;
             }
             return false;
@@ -484,6 +484,9 @@ namespace lsp
         void RangeSlider::end(ui::UIContext *ctx)
         {
             Widget::end(ctx);
+
+            if ((wWidget != NULL) && (wWidget->tag()->get() == 102))
+                lsp_trace("debug");
 
             // Parse minimum and maximum for begin and end
             end_param(&sBegin);
@@ -537,13 +540,13 @@ namespace lsp
 
             // Begin editing
             const bool begin_ch    =
-                (new_begin != old_begin) &&
                 (sBegin.sValue.pPort != NULL) &&
-                (sBegin.sValue.pPort->value() != old_begin);
+                ((new_begin != old_begin) ||
+                 (new_begin != sBegin.sValue.pPort->value()));
             const bool end_ch      =
-                (new_end != old_end) &&
                 (sEnd.sValue.pPort != NULL) &&
-                (sEnd.sValue.pPort->value() != old_end);
+                ((new_end != old_end) ||
+                 (new_end != sEnd.sValue.pPort->value()));
 
             submit_values(new_begin, new_end, begin_ch, end_ch, ui::PORT_USER_EDIT);
         }
@@ -572,10 +575,10 @@ namespace lsp
             // Begin editing
             const float begin_dfl   = calc_default_value(&sBegin);
             const float end_dfl     = calc_default_value(&sEnd);
-            const float begin_ch    =
+            const bool begin_ch     =
                 (sBegin.sValue.pPort != NULL) &&
                 (sBegin.sValue.pPort->value() != begin_dfl);
-            const float end_ch      =
+            const bool end_ch       =
                 (sEnd.sValue.pPort != NULL) &&
                 (sEnd.sValue.pPort->value() != end_dfl);
 
@@ -587,7 +590,7 @@ namespace lsp
             }
             if (end_ch)
             {
-                rs->begin()->set(encode_value(sEnd.sValue.pPort, end_dfl));
+                rs->end()->set(encode_value(sEnd.sValue.pPort, end_dfl));
                 sEnd.sValue.fValue          = end_dfl;
             }
 
@@ -609,6 +612,12 @@ namespace lsp
             return meta::is_log_rule(meta) || meta::is_gain_unit(meta->unit);
         }
 
+        void RangeSlider::limit_param(param_t *p, float min, float max)
+        {
+            p->sValue.fValue    = lsp_xlimit(p->sValue.fValue, p->sMin.fValue, p->sMax.fValue);
+            p->sValue.fValue    = lsp_xlimit(p->sValue.fValue, min, max);
+        }
+
         void RangeSlider::commit_values(size_t flags)
         {
             // Ensure that widget is set
@@ -627,6 +636,9 @@ namespace lsp
             const float abs_max     = lsp_max(sBegin.sMax.fValue, sEnd.sMax.fValue);
             const float abs_range   = sRange.fValue;
 
+            limit_param(&sBegin, abs_min, abs_max);
+            limit_param(&sEnd, abs_min, abs_max);
+
             // Apply value constraints
             if ((sBegin.sValue.pPort != NULL) && (sEnd.sValue.pPort != NULL))
             {
@@ -636,8 +648,7 @@ namespace lsp
                         sEnd.sValue.fValue      = lsp_max(sBegin.sValue.fValue * logf(abs_range), sEnd.sValue.fValue);
                     else
                         sEnd.sValue.fValue      = lsp_max(sBegin.sValue.fValue + abs_range, sEnd.sValue.fValue);
-                    sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
-                    sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, abs_min, abs_max);
+                    limit_param(&sEnd, abs_min, abs_max);
                 }
                 else if (flags & NF_END)
                 {
@@ -645,8 +656,7 @@ namespace lsp
                         sBegin.sValue.fValue    = lsp_min(sEnd.sValue.fValue / logf(abs_range), sBegin.sValue.fValue);
                     else
                         sBegin.sValue.fValue    = lsp_min(sEnd.sValue.fValue - abs_range, sBegin.sValue.fValue);
-                    sBegin.sValue.fValue    = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
-                    sBegin.sValue.fValue    = lsp_xlimit(sEnd.sValue.fValue, abs_min, abs_max);
+                    limit_param(&sBegin, abs_min, abs_max);
                 }
             }
 
@@ -667,7 +677,6 @@ namespace lsp
                 const float v_max   = (flags & NF_BEGIN_MAX) ? encode_value(p, sBegin.sMax.fValue) : rs->begin()->max();
 
                 rs->begin()->set_all(v_begin, v_min, v_max);
-                rs->step()->set(v_step);
             }
             if (flags & (NF_END | NF_END_MIN | NF_END_MAX))
             {
@@ -676,7 +685,7 @@ namespace lsp
                 const float v_min   = (flags & NF_END_MIN) ? encode_value(p, sEnd.sMin.fValue) : rs->end()->min();
                 const float v_max   = (flags & NF_END_MAX) ? encode_value(p, sEnd.sMax.fValue) : rs->end()->max();
 
-                rs->begin()->set_all(v_end, v_min, v_max);
+                rs->end()->set_all(v_end, v_min, v_max);
             }
 
             if (flags & NF_RANGE)
@@ -693,11 +702,11 @@ namespace lsp
             size_t flags            = 0;
             if (ev_flags != NULL)
             {
-                flags                   = lsp_setflag(flags, 1 << NF_END, *ev_flags & tk::RangeSlider::CHANGE_MAX);
-                flags                   = lsp_setflag(flags, 1 << NF_BEGIN, *ev_flags & tk::RangeSlider::CHANGE_MIN);
+                flags                   = lsp_setflag(flags, NF_END, *ev_flags & tk::RangeSlider::CHANGE_MAX);
+                flags                   = lsp_setflag(flags, NF_BEGIN, *ev_flags & tk::RangeSlider::CHANGE_MIN);
             }
             else
-                flags                   = 1 << NF_END;
+                flags                   = NF_END;
             if (self != NULL)
                 self->submit_values(flags);
             return STATUS_OK;

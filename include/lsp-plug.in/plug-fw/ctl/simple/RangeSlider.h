@@ -106,6 +106,7 @@ namespace lsp
                 static void         construct_param(param_t *p);
                 static void         construct_value(value_t *v);
                 static float        calc_default_value(param_t *p);
+                static void         limit_param(param_t *p, float min, float max);
 
             protected:
                 void                init_param(param_t *p);
