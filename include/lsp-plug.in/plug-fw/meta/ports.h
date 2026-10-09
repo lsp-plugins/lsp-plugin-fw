@@ -178,19 +178,30 @@
 
 #define PORT_SET(id, label, keys, ports)  \
     { id, label, NULL, U_ENUM, R_PORT_SET, 0, 0, 0, 0, 0, 0, keys, ports, NULL }
+
 #define OUT_PERCENTS(id, label) \
     { id, label, NULL, U_PERCENT, R_METER, 0, F_LOWER | F_UPPER, 0, 100, 0, 0, NULL, NULL }
-#define METER_GAIN(id, label, max) \
-    { id, label, NULL, U_GAIN_AMP, R_METER, 0, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, 0.0f, 0, NULL, NULL, NULL }
-#define METER_GAIN_DFL(id, label, max, dfl) \
-    { id, label, NULL, U_GAIN_AMP, R_METER, 0, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, dfl, 0, NULL, NULL, NULL }
-#define METER_OUT_GAIN(id, label, max) \
-    { id, label, NULL, U_GAIN_AMP, R_METER, 0, F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL, NULL }
-#define LUFS_METER(id, label, max) \
-    { id, label, NULL, U_LUFS, R_METER, 0, F_UPPER | F_LOWER, -72.0f, max, -72.0f, 0, NULL, NULL, NULL }
-#define METER_GAIN10(id, label)                 METER_GAIN(id, label, 10.0f)
-#define METER_GAIN20(id, label)                 METER_GAIN(id, label, 20.0f)
-#define METER_PERCENT(id, label)                { id, label, NULL, U_PERCENT, R_METER, 0, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL, NULL }
+
+#define ADDON_METER_GAIN(revision, id, label, max) \
+    { id, label, NULL, U_GAIN_AMP, R_METER, revision, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, 0.0f, 0, NULL, NULL, NULL }
+#define ADDON_METER_GAIN_DFL(revision, id, label, max, dfl) \
+    { id, label, NULL, U_GAIN_AMP, R_METER, revision, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, dfl, 0, NULL, NULL, NULL }
+#define ADDON_METER_OUT_GAIN(revision, id, label, max) \
+    { id, label, NULL, U_GAIN_AMP, R_METER, revision, F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL, NULL }
+#define ADDON_METER_PERCENT(revision, id, label)    \
+    { id, label, NULL, U_PERCENT, R_METER, revision, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL, NULL }
+#define ADDON_METER_GAIN10(revision, id, label)     ADDON_METER_GAIN(revision, id, label, 10.0f)
+#define ADDON_METER_GAIN20(revision, id, label)     ADDON_METER_GAIN(revision, id, label, 20.0f)
+#define ADDON_LUFS_METER(revision, id, label, max) \
+    { id, label, NULL, U_LUFS, R_METER, revision, F_UPPER | F_LOWER, -72.0f, max, -72.0f, 0, NULL, NULL, NULL }
+
+#define METER_GAIN(id, label, max)              ADDON_METER_GAIN(0, id, label, max)
+#define METER_GAIN_DFL(id, label, max, dfl)     ADDON_METER_GAIN_DFL(0, id, label, max, dfl)
+#define METER_OUT_GAIN(id, label, max)          ADDON_METER_OUT_GAIN(0, id, label, max)
+#define METER_GAIN10(id, label)                 ADDON_METER_GAIN10(0, id, label)
+#define METER_GAIN20(id, label)                 ADDON_METER_GAIN20(0, id, label)
+#define METER_PERCENT(id, label)                ADDON_METER_PERCENT(0, id, label)
+#define LUFS_METER(id, label, max)              ADDON_LUFS_METER(0, id, label, max)
 
 #define STRING(id, label, length)               { id, label, NULL, U_NONE, R_STRING, 0, F_LOWER | F_UPPER, 0, length, 0, 0, NULL, NULL, "" }
 #define STRING_DFL(id, label, length, text)     { id, label, NULL, U_NONE, R_STRING, 0, F_LOWER | F_UPPER, 0, length, 0, 0, NULL, NULL, text }
