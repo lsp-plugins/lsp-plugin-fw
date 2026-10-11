@@ -142,6 +142,7 @@ namespace lsp
 
                 // Bind slots
                 cbox->slots()->bind(tk::SLOT_SUBMIT, slot_combo_submit, this);
+                cbox->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_mouse_double_click, this);
             }
 
             return STATUS_OK;
@@ -390,6 +391,19 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t ComboBox::slot_mouse_double_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Disallow double-click by left mouse button
+            const ws::event_t * const ev = static_cast<ws::event_t *>(data);
+            if (ev->nCode == ws::MCB_LEFT)
+                return STATUS_OK;
+
+            ctl::ComboBox * const self  = static_cast<ctl::ComboBox *>(ptr);
+            if (self != NULL)
+                self->submit_default_value();
+            return STATUS_OK;
+        }
+
         void ComboBox::submit_value()
         {
             tk::ComboBox * const cbox = tk::widget_cast<tk::ComboBox>(wWidget);
@@ -447,6 +461,17 @@ namespace lsp
 
             pPort->begin_edit();
             pPort->set_value(value);
+            pPort->notify_all(ui::PORT_USER_EDIT);
+            pPort->end_edit();
+        }
+
+        void ComboBox::submit_default_value()
+        {
+            if ((pPort == NULL) || (pPort->value() == pPort->default_value()))
+                return;
+
+            pPort->begin_edit();
+            pPort->set_default();
             pPort->notify_all(ui::PORT_USER_EDIT);
             pPort->end_edit();
         }

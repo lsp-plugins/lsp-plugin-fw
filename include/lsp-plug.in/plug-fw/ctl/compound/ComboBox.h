@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 июн. 2021 г.
@@ -77,6 +77,7 @@ namespace lsp
 
             protected:
                 static status_t     slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_mouse_double_click(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t      compare_port_item(const port_item_t *a, const port_item_t *b);
@@ -84,6 +85,7 @@ namespace lsp
             protected:
                 virtual void        sync_metadata(ui::IPort *port) override;
                 void                submit_value();
+                void                submit_default_value();
                 void                do_destroy();
                 void                update_selection();
                 void                drop_port_items();
