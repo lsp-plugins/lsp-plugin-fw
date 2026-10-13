@@ -456,30 +456,11 @@ namespace lsp
             standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Connect data ports
-            for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
-            {
-                standalone::DataPort * const dp = self->vDataPorts.uget(i);
-                if (dp == NULL)
-                    continue;
-
-                dp->set_buffer_size(params->max_buffer_size);
-            }
-
-            for (size_t i=0, n=self->vAudioBuffers.size(); i<n; ++i)
-            {
-                standalone::AudioBufferPort * const ap = self->vAudioBuffers.uget(i);
-                if (ap == NULL)
-                    continue;
-                ap->set_buffer_size(params->max_buffer_size);
-            }
+            self->update_buffer_sizes(params);
 
             // Set sample rate
             lsp_info("Sample rate set to %d Hz", int(params->sample_rate));
-            self->pPlugin->set_sample_rate(params->sample_rate);
-            if (self->pSamplePlayer != NULL)
-                self->pSamplePlayer->set_sample_rate(params->sample_rate);
-            self->sPosition.sampleRate        = params->sample_rate;
-            self->bUpdateSettings             = true;
+            self->update_sample_rate(params);
 
             return STATUS_OK;
         }
@@ -500,35 +481,13 @@ namespace lsp
             standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Update buffer size
-            for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
-            {
-                standalone::DataPort *p = self->vDataPorts.uget(i);
-                if (p != NULL)
-                    p->set_buffer_size(params->max_buffer_size);
-            }
-
-            for (size_t i=0, n=self->vAudioBuffers.size(); i<n; ++i)
-            {
-                standalone::AudioBufferPort *p = self->vAudioBuffers.uget(i);
-                if (p != NULL)
-                    p->set_buffer_size(params->max_buffer_size);
-            }
-
-            if (self->pShmClient != NULL)
-                self->pShmClient->set_buffer_size(params->max_buffer_size);
+            self->update_buffer_sizes(params);
 
             // Update sample rate
             if (self->sPosition.sampleRate != params->sample_rate)
             {
                 lsp_info("Sample rate changed to %d Hz", int(params->sample_rate));
-
-                self->pPlugin->set_sample_rate(params->sample_rate);
-                if (self->pSamplePlayer != NULL)
-                    self->pSamplePlayer->set_sample_rate(params->sample_rate);
-                if (self->pShmClient != NULL)
-                    self->pShmClient->set_sample_rate(params->sample_rate);
-                self->sPosition.sampleRate = params->sample_rate;
-                self->bUpdateSettings      = true;
+                self->update_sample_rate(params);
             }
 
             return STATUS_OK;
@@ -567,6 +526,40 @@ namespace lsp
 
         void Wrapper::on_disconnected(void *user_data)
         {
+        }
+
+        void Wrapper::update_buffer_sizes(const audio::io_parameters_t * params)
+        {
+            // Update buffer sizes for data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
+            {
+                standalone::DataPort * const dp = vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->set_buffer_size(params->max_buffer_size);
+            }
+
+            // Update buffer sizes for audio buffers
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                standalone::AudioBufferPort * const ap = vAudioBuffers.uget(i);
+                if (ap != NULL)
+                    ap->set_buffer_size(params->max_buffer_size);
+            }
+
+            // Set up buffer size for shared memory client
+            if (pShmClient != NULL)
+                pShmClient->set_buffer_size(params->max_buffer_size);
+        }
+
+        void Wrapper::update_sample_rate(const audio::io_parameters_t *params)
+        {
+            pPlugin->set_sample_rate(params->sample_rate);
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(params->sample_rate);
+            if (pShmClient != NULL)
+                pShmClient->set_sample_rate(params->sample_rate);
+            sPosition.sampleRate = params->sample_rate;
+            bUpdateSettings      = true;
         }
 
         status_t Wrapper::run(const audio::io_position_t *position, size_t samples)

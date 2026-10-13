@@ -143,6 +143,8 @@ namespace lsp
                 void            unregister_data_ports();
                 void            destroy_audio_backend();
                 void            apply_routing();
+                void            update_buffer_sizes(const audio::io_parameters_t *params);
+                void            update_sample_rate(const audio::io_parameters_t *params);
 
                 const core::AudioBackendInfo *find_backend(const LSPString *id);
                 const core::AudioBackendInfo *select_default_backend();
