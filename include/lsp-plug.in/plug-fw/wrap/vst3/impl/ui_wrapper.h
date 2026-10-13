@@ -877,29 +877,32 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            UIWrapper *self     = static_cast<UIWrapper *>(ptr);
-            if (self->bSizing)
-                return STATUS_OK;
-
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
-            self->bSizing       = true;
-            lsp_finally { self->bSizing = false; };
 
-            tk::Window *wnd     = self->window();
-            if ((wnd == NULL) || (!wnd->visibility()->get()))
-            {
-                lsp_trace("(wnd == NULL) || (!wnd->visibility()->get())");
-                return STATUS_OK;
-            }
-
-            ws::rectangle_t rr;
-            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-            {
-                lsp_trace("wnd->get_screen_rectangle(&rr) != STATUS_OK");
-                return STATUS_OK;
-            }
-
-            self->query_resize(&rr);
+// GitHub issue #666: this code seems to be not needed for VST3 wrapper
+//            UIWrapper *self     = static_cast<UIWrapper *>(ptr);
+//            if (self->bSizing)
+//                return STATUS_OK;
+//
+//            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+//            self->bSizing       = true;
+//            lsp_finally { self->bSizing = false; };
+//
+//            tk::Window *wnd     = self->window();
+//            if ((wnd == NULL) || (!wnd->visibility()->get()))
+//            {
+//                lsp_trace("(wnd == NULL) || (!wnd->visibility()->get())");
+//                return STATUS_OK;
+//            }
+//
+//            ws::rectangle_t rr;
+//            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+//            {
+//                lsp_trace("wnd->get_screen_rectangle(&rr) != STATUS_OK");
+//                return STATUS_OK;
+//            }
+//
+//            self->query_resize(&rr);
 
             return STATUS_OK;
         }

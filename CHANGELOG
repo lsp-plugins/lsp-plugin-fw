@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.41 ===
+* Fixed recent VST3 sizing issues in new Ardour 8.9 version.
 * Added ability to reset parameter to it's default value in combo boxes by
   double-clicking with the right mouse button.
 * Added possibility to define sort order for ctl::ComboBox enumerations.
