@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 17 июн. 2024 г.
@@ -51,6 +51,7 @@ namespace lsp
                 ipc::Mutex              sMutex;
                 ipc::Thread            *pThread;
                 lltl::parray<ICatalogClient>  vClients;
+                uint32_t                nSleepInterval;
 
             protected:
                 bool                open_catalog();
@@ -61,6 +62,8 @@ namespace lsp
                 size_t              process_apply();
                 size_t              process_update();
                 void                process_keep_alive();
+                void                perform_sleep();
+                void                reset_sleep_interval();
 
             public:
                 explicit Catalog();

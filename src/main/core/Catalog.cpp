@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 июн. 2024 г.
@@ -26,18 +26,35 @@ namespace lsp
 {
     namespace core
     {
+        static constexpr uint32_t   SLEEP_INTERVAL_MIN      = 10;   // 10  milliseconds
+        static constexpr uint32_t   SLEEP_INTERVAL_MAX      = 320;  // 320 milliseconds
 
         Catalog::Catalog()
         {
             pThread         = NULL;
+            nSleepInterval  = SLEEP_INTERVAL_MIN;
         }
 
         Catalog::~Catalog()
         {
         }
 
+        void Catalog::perform_sleep()
+        {
+            ipc::Thread::sleep(nSleepInterval);
+            nSleepInterval  = lsp_min(nSleepInterval << 1, SLEEP_INTERVAL_MAX);
+        }
+
+        void Catalog::reset_sleep_interval()
+        {
+            nSleepInterval  = SLEEP_INTERVAL_MIN;
+        }
+
         bool Catalog::open_catalog()
         {
+            if (sCatalog.opened())
+                return true;
+
             LSPString catalog_name;
             status_t res    = system::get_user_login(&catalog_name);
             if (res != STATUS_OK)
@@ -46,7 +63,12 @@ namespace lsp
             if (!catalog_name.prepend_ascii("lsp-catalog-"))
                 return false;
 
-            return sCatalog.open(&catalog_name, 8192) == STATUS_OK;
+            res = sCatalog.open(&catalog_name, 8192);
+            if (res != STATUS_OK)
+                return false;
+
+            reset_sleep_interval();
+            return true;
         }
 
         status_t Catalog::run()
@@ -54,10 +76,10 @@ namespace lsp
             while (!ipc::Thread::is_cancelled())
             {
                 // Ensure that catalog is opened
-                if (!sCatalog.opened())
+                if (!open_catalog())
                 {
-                    if (!open_catalog())
-                        ipc::Thread::sleep(100);
+                    perform_sleep();
+                    continue;
                 }
 
                 // Process change requests
@@ -67,7 +89,7 @@ namespace lsp
                     sCatalog.gc();
 
                     // Perform short sleep
-                    ipc::Thread::sleep(50);
+                    perform_sleep();
                 }
             }
 
@@ -92,13 +114,22 @@ namespace lsp
             // Apply changes to clients
             processed += process_apply();
 
-            return processed > 0;
+            if (processed > 0)
+            {
+                reset_sleep_interval();
+                return true;
+            }
+
+            return false;
         }
 
         void Catalog::sync_catalog()
         {
             if (!sCatalog.sync())
                 return;
+
+            // Reset sleep interval
+            reset_sleep_interval();
 
             // Lock the state
             if (!sMutex.lock())
@@ -148,7 +179,7 @@ namespace lsp
             // Iterate over the clients and try to update them
             for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
             {
-                ICatalogClient *c = it.get();
+                ICatalogClient * const c    = it.get();
                 if (c == NULL)
                     continue;
 
@@ -180,7 +211,7 @@ namespace lsp
             // Iterate over the clients
             for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
             {
-                ICatalogClient *c = it.get();
+                ICatalogClient * const c    = it.get();
                 if (c == NULL)
                     continue;
 
@@ -287,15 +318,12 @@ namespace lsp
                 return STATUS_OK;
 
             // Stop the dispatcher thread
-            if (pThread != NULL)
-            {
-                pThread->cancel();
-                pThread->join();
+            pThread->cancel();
+            pThread->join();
 
-                // Destroy the thread object
-                delete pThread;
-                pThread     = NULL;
-            }
+            // Destroy the thread object
+            delete pThread;
+            pThread     = NULL;
 
             return STATUS_OK;
         }

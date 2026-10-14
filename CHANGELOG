@@ -10,6 +10,11 @@
 * Updated behavior of A/B preset switch in the UI: A and B presets are swapped
   when switching between them. That makes the UI usage more comfortable: no need
   to move mouse pointer to perform the A -> B -> A switch order.
+* Polling interval of shared memory catalog state beacme dynamic and varies from
+  10 milliseconds when there is some load on catalog up to 320 milliseconds, when
+  there is no additional load.
+* Bugfix in shared memory catalog initialization for standalone plugin format that
+  could yield shared memory sends working improperly.
 
 === 1.0.40 ===
 * Updated module versions in dependencies.
