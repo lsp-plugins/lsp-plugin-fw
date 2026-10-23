@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 янв. 2024 г.
@@ -900,7 +900,7 @@ namespace lsp
             }
 
             // Create shared memory sends and returns
-            lsp_trace("Number of audio buffers: %d", int(vAudioBuffers.size()));
+            lsp_trace("Number of shared memory send/return buffers: %d", int(vAudioBuffers.size()));
 
             if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
             {
@@ -1848,7 +1848,9 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setupProcessing(Steinberg::Vst::ProcessSetup & setup)
         {
-            lsp_trace("this=%p", this);
+            lsp_trace("this=%p, processMode=%d, symbolicSampleSize = %d, maxSamplesPerBlock=%d, sampleRate=%.2f",
+				this, int(setup.processMode), int(setup.symbolicSampleSize),
+				int(setup.maxSamplesPerBlock), double(setup.sampleRate));
 
             // Check that processing mode is valid
             switch (setup.processMode)
@@ -1866,7 +1868,7 @@ namespace lsp
                 return Steinberg::kInvalidArgument;
 
             // Save new sample rate
-            size_t sample_rate = setup.sampleRate;
+            size_t sample_rate = size_t(setup.sampleRate);
             if (sample_rate > MAX_SAMPLE_RATE)
             {
                 lsp_warn(
@@ -1875,13 +1877,19 @@ namespace lsp
                     long(MAX_SAMPLE_RATE));
                 sample_rate  = MAX_SAMPLE_RATE;
             }
-            pPlugin->set_sample_rate(sample_rate);
-            if (pSamplePlayer != NULL)
-                pSamplePlayer->set_sample_rate(sample_rate);
-            if (pShmClient != NULL)
+            if (pPlugin->sample_rate() != sample_rate)
             {
-                pShmClient->set_sample_rate(sample_rate);
-                pShmClient->set_buffer_size(setup.maxSamplesPerBlock);
+                pPlugin->set_sample_rate(sample_rate);
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->set_sample_rate(sample_rate);
+                if (pShmClient != NULL)
+                {
+                    pShmClient->set_sample_rate(sample_rate);
+                    pShmClient->set_buffer_size(setup.maxSamplesPerBlock);
+                }
+
+                // Force settings to be updated
+                bUpdateSettings     = true;
             }
 
             // Adjust block size for input and output audio ports
