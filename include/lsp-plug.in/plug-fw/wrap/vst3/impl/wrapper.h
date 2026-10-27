@@ -1744,7 +1744,7 @@ namespace lsp
             // Step 1. Check that we allow several ports to be disabled
             for (ssize_t i=0; i < numIns; ++i)
             {
-                const audio_bus_t *bus = vAudioIn.get(i);
+                const audio_bus_t * const bus   = vAudioIn.get(i);
                 if (bus == NULL)
                     return Steinberg::kInvalidArgument;
 
@@ -1758,14 +1758,14 @@ namespace lsp
 
                 const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
                 if ((arr & (~bus->nFullArr)) != 0)
-                    return Steinberg::kInvalidArgument;
+                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }
 
             for (ssize_t i=0; i < numOuts; ++i)
             {
-                const audio_bus_t *bus = vAudioOut.get(i);
+                const audio_bus_t * const bus   = vAudioOut.get(i);
                 if (bus == NULL)
                     return Steinberg::kInvalidArgument;
 
@@ -1779,7 +1779,7 @@ namespace lsp
 
                 const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
                 if ((arr & (~bus->nFullArr)) != 0)
-                    return Steinberg::kInvalidArgument;
+                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }
@@ -1788,8 +1788,8 @@ namespace lsp
             lsp_trace("Bus configuration matched");
             for (ssize_t i=0; i < numIns; ++i)
             {
-                audio_bus_t *bus    = vAudioIn.get(i);
-                bus->nCurrArr       = inputs[i];
+                audio_bus_t * const bus = vAudioIn.get(i);
+                bus->nCurrArr           = inputs[i];
 
                 IF_TRACE(
                     LSPString tmp;
@@ -1801,8 +1801,8 @@ namespace lsp
 
             for (ssize_t i=0; i < numOuts; ++i)
             {
-                audio_bus_t *bus    = vAudioOut.get(i);
-                bus->nCurrArr       = outputs[i];
+                audio_bus_t * const bus = vAudioOut.get(i);
+                bus->nCurrArr           = outputs[i];
 
                 IF_TRACE(
                     LSPString tmp;
