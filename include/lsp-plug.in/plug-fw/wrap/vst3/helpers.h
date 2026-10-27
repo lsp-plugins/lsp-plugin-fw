@@ -1075,34 +1075,6 @@ namespace lsp
             return (res != NULL) ? res : "";
         }
 
-        inline bool use_message_workaround(Steinberg::Vst::IHostApplication *host)
-        {
-            Steinberg::Vst::String128 host_name;
-            if (host->getName(host_name) != Steinberg::kResultOk)
-                return false;
-
-            LSPString name, check;
-            if (!name.set_utf16(to_utf16(host_name)))
-                return false;
-
-            lsp_trace("Obtained VST3 Host Name: %s", name.get_native());
-            name.tolower();
-
-            if (check.set_ascii("bitwig studio"))
-            {
-                if (name.index_of(&check) >= 0)
-                {
-                    lsp_trace("Using Steinberg::Vst::IMessage workaround");
-                    return true;
-                }
-                else
-                    lsp_trace("string '%s' not matched '%s'", name.get_native(), check.get_native());
-            }
-
-            lsp_trace("Using standard Steinberg::Vst::IMessage implementation");
-            return false;
-        }
-
         inline status_t serialize_preset_state(Steinberg::IBStream *os, const core::preset_state_t *state)
         {
             status_t res;

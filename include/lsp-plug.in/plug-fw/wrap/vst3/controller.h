@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 февр. 2024 г.
@@ -37,6 +37,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ctl_ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/quirks.h>
 
 #ifdef WITH_UI_FEATURE
     #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
@@ -94,8 +95,8 @@ namespace lsp
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
                 float                               fScalingFactor;         // Scaling factor
+                host_quirks_t                       nHostQuirks;            // Host quirks
                 bool                                bMidiMapping;           // Use MIDI mapping
-                bool                                bMsgWorkaround;         // Workaround of message exchange for bogus hosts
 
             protected:
                 vst3::CtlPort                      *create_port(const meta::port_t *port, const char *postfix);
@@ -104,7 +105,7 @@ namespace lsp
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
                 void                                send_kvt_state();
-                status_t                            deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is);
+                Steinberg::Vst::IMessage           *alloc_message();
 
         #ifdef WITH_UI_FEATURE
             protected:

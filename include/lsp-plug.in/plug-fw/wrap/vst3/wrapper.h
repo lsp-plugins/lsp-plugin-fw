@@ -45,6 +45,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/quirks.h>
 
 namespace lsp
 {
@@ -158,10 +159,10 @@ namespace lsp
                 uatomic_t                           nDumpResp;              // State dump response
                 uatomic_t                           nPresetFlags;           // Preset flags
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
+                host_quirks_t                       nHostQuirks;            // Message workaround for bogus hosts
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
                 bool                                bStateManage;           // State management barrier
                 bool                                bMidiMapping;           // Midi mapping is used
-                bool                                bMsgWorkaround;         // Message workaround for bogus hosts
 
                 uint32_t                            nLatency;               // Current latency of the plugin
 
@@ -190,6 +191,8 @@ namespace lsp
                 void                        receive_raw_osc_event(osc::parse_frame_t *frame);
 
             protected:
+                inline Steinberg::Vst::IMessage   *alloc_message();
+
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t                    create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 bool                        create_busses(const meta::plugin_t *meta);
