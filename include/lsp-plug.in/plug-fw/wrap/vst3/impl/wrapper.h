@@ -1753,6 +1753,8 @@ namespace lsp
                 return Steinberg::kResultFalse;
 
             // Step 1. Check that we allow several ports to be disabled
+            const bool strict_bus   = !(nHostQuirks & HQUIRK_FLEX_BUS_ARRANGEMENTS);
+
             for (ssize_t i=0; i < numIns; ++i)
             {
                 const audio_bus_t * const bus   = vAudioIn.get(i);
@@ -1768,6 +1770,8 @@ namespace lsp
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
+                if ((strict_bus) && ((arr & (~bus->nFullArr)) != 0))
+                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }
@@ -1787,6 +1791,8 @@ namespace lsp
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
+                if ((strict_bus) && ((arr & (~bus->nFullArr)) != 0))
+                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }

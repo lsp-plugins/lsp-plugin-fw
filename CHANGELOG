@@ -16,6 +16,7 @@
 * Bugfix in shared memory catalog initialization for standalone plugin format that
   could yield shared memory sends working improperly.
 * Fixed VST3 getBusArrangement and setBusArrangements contract.
+* Added less strict VST3 bus arrangement for some hosts.
 
 === 1.0.40 ===
 * Updated module versions in dependencies.
