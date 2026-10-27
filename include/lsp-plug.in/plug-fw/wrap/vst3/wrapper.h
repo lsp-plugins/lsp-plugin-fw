@@ -67,7 +67,8 @@ namespace lsp
                 {
                     Steinberg::char16              *sName;      // Bus name
                     meta::port_group_type_t         nType;      // Type of the group (MONO, STEREO, etc)
-                    uint32_t                        nPorts;     // Bus ports
+                    uint16_t                        nPorts;     // Number of real bus ports
+                    uint16_t                        nCurrPorts; // Number of actual bus ports
                     Steinberg::Vst::BusType         nBusType;   // Bus type
                     Steinberg::Vst::SpeakerArrangement nCurrArr;// Current bus arrangement
                     Steinberg::Vst::SpeakerArrangement nMinArr; // Minimum allowed bus arrangement
@@ -172,7 +173,10 @@ namespace lsp
                                                              lltl::parray<plug::IPort> *outs);
                 static audio_bus_t         *create_audio_bus(plug::IPort *port);
                 static void                 bind_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples);
+                static void                 clear_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples);
                 static void                 advance_bus_buffers(lltl::parray<audio_bus_t> *busses, size_t samples);
+                static uint8_t              count_bus_channels(Steinberg::Vst::SpeakerArrangement arrangement);
+                static ssize_t              buffer_index(Steinberg::Vst::SpeakerArrangement arrangement, Steinberg::Vst::Speaker speaker);
                 static void                 update_port_activity(audio_bus_t *bus);
 
                 static event_bus_t         *alloc_event_bus(const char *name, size_t ports);

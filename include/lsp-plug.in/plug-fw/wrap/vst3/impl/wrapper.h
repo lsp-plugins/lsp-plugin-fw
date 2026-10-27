@@ -188,7 +188,8 @@ namespace lsp
 
             // Fill bus structure
             memcpy(bus->sName, u16name, szof_name);
-            bus->nPorts         = ports;
+            bus->nPorts         = uint16_t(ports);
+            bus->nCurrPorts     = uint16_t(ports);
             bus->bActive        = false;
 
             return bus;
@@ -336,14 +337,15 @@ namespace lsp
 
             // Fill the audio bus data
             bus->nType          = meta->type;
-            bus->nPorts         = channels.size();
+            bus->nPorts         = uint16_t(channels.size());
+            bus->nCurrPorts     = uint16_t(channels.size());
             bus->nFullArr       = 0;
             bus->nMinArr        = 0;
             bus->nBusType       = (meta->flags & meta::PGF_SIDECHAIN) ? Steinberg::Vst::kAux : Steinberg::Vst::kMain;
 
             for (size_t i=0; i<bus->nPorts; ++i)
             {
-                vst3::AudioPort *xp = channels.uget(i);
+                vst3::AudioPort * const xp  = channels.uget(i);
                 bus->nFullArr      |= xp->speaker();
                 bus->nMinArr       |= (meta::is_optional_port(xp->metadata())) ? 0 : xp->speaker();
                 bus->vPorts[i]      = xp;
@@ -379,6 +381,7 @@ namespace lsp
 
             bus->nType          = meta::GRP_MONO;
             bus->nPorts         = 1;
+            bus->nCurrPorts     = 1;
             bus->nCurrArr       = xp->speaker();
             bus->nMinArr        = (meta::is_optional_port(meta)) ? 0 : xp->speaker();
             bus->nFullArr       = bus->nCurrArr;
@@ -395,7 +398,7 @@ namespace lsp
             const Steinberg::Vst::SpeakerArrangement arr    = (bus->bActive) ? bus->nCurrArr : 0;
             for (size_t i=0; i<bus->nPorts; ++i)
             {
-                vst3::AudioPort *p  = bus->vPorts[i];
+                vst3::AudioPort * const p   = bus->vPorts[i];
                 p->set_active(p->speaker() & arr);
             }
         }
@@ -1092,7 +1095,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = b->nPorts;
+                    bus.channelCount    = b->nCurrPorts;
                     bus.busType         = b->nBusType;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1112,7 +1115,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = b->nPorts;
+                    bus.channelCount    = b->nCurrPorts;
                     bus.busType         = b->nBusType;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1757,8 +1760,6 @@ namespace lsp
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
-                if ((arr & (~bus->nFullArr)) != 0)
-                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }
@@ -1778,8 +1779,6 @@ namespace lsp
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
-                if ((arr & (~bus->nFullArr)) != 0)
-                    return Steinberg::kResultFalse;
                 if ((bus->nMinArr & arr) != bus->nMinArr)
                     return Steinberg::kResultFalse;
             }
@@ -1790,6 +1789,7 @@ namespace lsp
             {
                 audio_bus_t * const bus = vAudioIn.get(i);
                 bus->nCurrArr           = inputs[i];
+                bus->nCurrPorts         = count_bus_channels(bus->nCurrArr);
 
                 IF_TRACE(
                     LSPString tmp;
@@ -1803,6 +1803,7 @@ namespace lsp
             {
                 audio_bus_t * const bus = vAudioOut.get(i);
                 bus->nCurrArr           = outputs[i];
+                bus->nCurrPorts         = count_bus_channels(bus->nCurrArr);
 
                 IF_TRACE(
                     LSPString tmp;
@@ -1896,7 +1897,7 @@ namespace lsp
             nMaxSamplesPerBlock     = setup.maxSamplesPerBlock;
             for (lltl::iterator<audio_bus_t> it = vAudioIn.values(); it; ++it)
             {
-                audio_bus_t *bus = it.get();
+                audio_bus_t * const bus     = it.get();
                 if (bus == NULL)
                     continue;
                 for (size_t i=0; i<bus->nPorts; ++i)
@@ -1905,7 +1906,7 @@ namespace lsp
 
             for (lltl::iterator<audio_bus_t> it = vAudioOut.values(); it; ++it)
             {
-                audio_bus_t *bus = it.get();
+                audio_bus_t * const bus     = it.get();
                 if (bus == NULL)
                     continue;
                 for (size_t i=0; i<bus->nPorts; ++i)
@@ -1914,7 +1915,7 @@ namespace lsp
 
             for (lltl::iterator<vst3::AudioBufferPort> it = vAudioBuffers.values(); it; ++it)
             {
-                vst3::AudioBufferPort *port = it.get();
+                vst3::AudioBufferPort * const port  = it.get();
                 if (port == NULL)
                     continue;
                 port->setup(setup.maxSamplesPerBlock);
@@ -2071,30 +2072,91 @@ namespace lsp
             return first_change - frame;
         }
 
+        ssize_t Wrapper::buffer_index(Steinberg::Vst::SpeakerArrangement arrangement, Steinberg::Vst::Speaker speaker)
+        {
+            if (!(arrangement & speaker))
+                return -1;
+
+            // Calculate number of bits set before the speaker bit
+            ssize_t index = 0;
+            for (arrangement &= (speaker-1); arrangement != 0; arrangement >>= 1)
+            {
+                if (arrangement & 0x01)
+                    ++index;
+            }
+            return index;
+        }
+
         void Wrapper::bind_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples)
         {
             for (size_t i=0, n=busses->size(); i<n; ++i)
             {
-                audio_bus_t *bus = busses->uget(i);
+                audio_bus_t * const bus     = busses->uget(i);
                 if (i < num_buffers)
                 {
-                    Steinberg::Vst::Sample32 **sbuffers = buffers[i].channelBuffers32;
+                    Steinberg::Vst::Sample32 ** const sbuffers          = buffers[i].channelBuffers32;
                     for (size_t j=0; j<bus->nPorts; ++j)
                     {
-                        vst3::AudioPort *p = bus->vPorts[j];
-                        if (bus->nCurrArr & p->speaker())
-                            p->bind(*(sbuffers++), num_samples);
-                        else
-                            p->bind(NULL, num_samples);
+                        vst3::AudioPort * const p       = bus->vPorts[j];
+                        const ssize_t idx   = buffer_index(bus->nCurrArr, p->speaker());
+                        p->bind((idx >= 0) ? sbuffers[idx] : NULL, num_samples);
+//                        lsp_trace(
+//                            "bus[%d].vPorts[%d].bind buf=%p (index=%d), samples=%d",
+//                            int(i), int(j), (idx >= 0) ? sbuffers[idx] : NULL, int(idx), int(num_samples));
                     }
                 }
                 else
                 {
                     for (size_t j=0; j<bus->nPorts; ++j)
                     {
-                        vst3::AudioPort *p = bus->vPorts[j];
+                        vst3::AudioPort * const p = bus->vPorts[j];
                         p->bind(NULL, num_samples);
+
+//                        lsp_trace(
+//                            "bus[%d].vPorts[%d].bind buf=%p, samples=%d",
+//                            int(i), int(j), NULL, int(num_samples));
                     }
+                }
+            }
+        }
+
+        uint8_t Wrapper::count_bus_channels(Steinberg::Vst::SpeakerArrangement arrangement)
+        {
+            uint8_t count = 0;
+            for (; arrangement != 0; arrangement >>= 1)
+                if (arrangement & 0x01)
+                    ++count;
+            return count;
+        }
+
+        void Wrapper::clear_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples)
+        {
+            for (size_t i=0, n=busses->size(); i<n; ++i)
+            {
+                if (i >= num_buffers)
+                    return;
+
+                audio_bus_t * const bus                     = busses->uget(i);
+                Steinberg::Vst::Sample32 ** const sbuffers  = buffers[i].channelBuffers32;
+                Steinberg::Vst::SpeakerArrangement list     = bus->nCurrArr;
+                Steinberg::Vst::SpeakerArrangement mask     = ~bus->nFullArr;
+
+                for (size_t idx=0; list != 0; list >>= 1, mask >>= 1)
+                {
+                    const Steinberg::Vst::SpeakerArrangement bit    = list & 1;
+                    if (!bit)
+                        continue;
+
+                    // Cleanup buffer if it is not associated with audio ports
+                    if (bit & mask)
+                    {
+                        if (sbuffers[idx] != NULL)
+                            dsp::fill_zero(sbuffers[idx], num_samples);
+//                        lsp_trace(
+//                            "fill_zero buf=%p (index=%d), samples=%d",
+//                            sbuffers[idx], int(idx), int(num_samples));
+                    }
+                    ++idx;
                 }
             }
         }
@@ -2103,7 +2165,7 @@ namespace lsp
         {
             for (size_t i=0, n=busses->size(); i<n; ++i)
             {
-                audio_bus_t *bus = busses->uget(i);
+                audio_bus_t * const bus = busses->uget(i);
                 for (size_t j=0; j<bus->nPorts; ++j)
                     bus->vPorts[j]->advance(samples);
             }
@@ -2789,6 +2851,9 @@ namespace lsp
                 pShmClient->post_process(data.numSamples);
                 pShmClient->end();
             }
+
+            // Cleanup output buffers if they are configured with setBusArrangements but not bound to internal audio ports
+            clear_bus_buffers(&vAudioOut, data.outputs, data.numOutputs, data.numSamples);
 
             // Dump state if requested
             const uatomic_t dump_req    = nDumpReq;
