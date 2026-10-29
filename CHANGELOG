@@ -19,6 +19,7 @@
 * Added less strict VST3 bus arrangement for some hosts.
 * Added delay (default 200 ms) before changing file status to 'Loading' in File widget
   to avoid flickering when quickly navigating over file list. 
+* Updated module versions in dependencies.
 
 === 1.0.40 ===
 * Updated module versions in dependencies.
