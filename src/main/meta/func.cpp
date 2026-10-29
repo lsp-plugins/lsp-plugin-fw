@@ -251,6 +251,11 @@ namespace lsp
             return false;
         }
 
+        bool is_sorted(const port_t *p)
+        {
+            return (p != NULL) && (p->flags & F_SORTED);
+        }
+
         bool is_log_rule(const port_t *port)
         {
             return (port->flags & F_LOG);

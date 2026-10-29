@@ -206,6 +206,7 @@ namespace lsp
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
+            nLoadingDelay   = 200;
             bLoadPreview    = false;
         }
 
@@ -267,9 +268,12 @@ namespace lsp
             for (size_t i=0; i<CHANNEL_PERIOD; ++i)
                 vChannelStyles[i].fmt_ascii("AudioSample::Channel%d", int(i + 1));
 
-            tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
+            tk::AudioSample * const as = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as != NULL)
             {
+                sStatusTimer.bind(as->display());
+                sStatusTimer.set_handler(slot_timer_status, this);
+
                 sWaveBorder.init(pWrapper, as->wave_border());
                 sFadeInBorder.init(pWrapper, as->fade_in_border());
                 sFadeOutBorder.init(pWrapper, as->fade_out_border());
@@ -349,6 +353,9 @@ namespace lsp
 
         void AudioSample::destroy()
         {
+            // Cancel timer
+            sStatusTimer.cancel();
+
             // Destroy the file preview
             if (pFilePreview != NULL)
             {
@@ -365,20 +372,23 @@ namespace lsp
             tk::MenuItem *mi = new tk::MenuItem(wWidget->display());
             if (mi == NULL)
                 return NULL;
-            if (mi->init() != STATUS_OK)
-            {
-                mi->destroy();
-                delete mi;
-                return NULL;
-            }
-            if (!vMenuItems.add(mi))
-            {
-                mi->destroy();
-                delete mi;
-                return NULL;
-            }
 
-            return (menu->add(mi) == STATUS_OK) ? mi : NULL;
+            lsp_finally {
+                if (mi != NULL)
+                {
+                    mi->destroy();
+                    delete mi;
+                }
+            };
+
+            if (mi->init() != STATUS_OK)
+                return NULL;
+            if (!vMenuItems.add(mi))
+                return NULL;
+            if (menu->add(mi) != STATUS_OK)
+                return NULL;
+
+            return release_ptr(mi);
         }
 
         tk::Menu *AudioSample::create_menu()
@@ -478,6 +488,7 @@ namespace lsp
                 sIPadding.set("ipadding", name, value);
 
                 set_value(&bLoadPreview, "load.preview", name, value);
+                set_value(&nLoadingDelay, "load.status.delay", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
                 set_text_layout(as->main_text_layout(), "tlayout.main", name, value);
@@ -632,9 +643,26 @@ namespace lsp
             sync_labels();
         }
 
+        void AudioSample::set_loading_status()
+        {
+            tk::AudioSample * const as  = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return;
+
+            revoke_style(as, "AudioSample::ok");
+            revoke_style(as, "AudioSample::info");
+            revoke_style(as, "AudioSample::error");
+
+            inject_style(as, "AudioSample::info");
+
+            as->main_text()->set("statuses.loading");
+            as->main_visibility()->set(true);
+            as->channel_visibility()->set(false);
+        }
+
         void AudioSample::sync_status()
         {
-            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(wWidget);
+            tk::AudioSample * const as  = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as == NULL)
                 return;
 
@@ -643,6 +671,7 @@ namespace lsp
 
             if (status == STATUS_OK)
             {
+                sStatusTimer.cancel();
                 as->main_visibility()->set(false);
                 as->channel_visibility()->set(true);
                 return;
@@ -650,32 +679,48 @@ namespace lsp
 
             as->main_visibility()->set(true);
 
-            revoke_style(as, "AudioSample::ok");
-            revoke_style(as, "AudioSample::info");
-            revoke_style(as, "AudioSample::error");
-
             if (status == STATUS_UNSPECIFIED)
             {
+                sStatusTimer.cancel();
+
+                revoke_style(as, "AudioSample::ok");
+                revoke_style(as, "AudioSample::info");
+                revoke_style(as, "AudioSample::error");
+
                 inject_style(as, "AudioSample::ok");
+
+                as->main_visibility()->set(true);
                 as->channel_visibility()->set(false);
                 as->main_text()->set("labels.click_or_drag_to_load");
             }
             else if (status == STATUS_LOADING)
             {
-                plug::mesh_t * const mesh = (pMeshPort != NULL) ? pMeshPort->buffer<plug::mesh_t>() : NULL;
-                const bool is_empty = (mesh == NULL) || (mesh->nBuffers < 0);
-
-                inject_style(as, "AudioSample::info");
-                as->main_text()->set("statuses.loading");
-                as->channel_visibility()->set(!is_empty);
+                // Launch delayed update to the 'Loading...' status.
+                if (nLoadingDelay > 0)
+                {
+                    as->main_visibility()->set(false);
+                    as->channel_visibility()->set(true);
+                    sStatusTimer.launch(1, 0, nLoadingDelay);
+                }
+                else
+                {
+                    sStatusTimer.cancel();
+                    set_loading_status();
+                }
             }
             else
             {
+                sStatusTimer.cancel();
                 LSPString code;
                 code.set_utf8("statuses.std.");
                 code.append_utf8(get_status_lc_key(status_t(status)));
 
+                revoke_style(as, "AudioSample::ok");
+                revoke_style(as, "AudioSample::info");
+                revoke_style(as, "AudioSample::error");
+
                 inject_style(as, "AudioSample::error");
+
                 as->main_visibility()->set(true);
                 as->channel_visibility()->set(false);
                 as->main_text()->set(&code);
@@ -1180,7 +1225,7 @@ namespace lsp
 
         status_t AudioSample::slot_popup_clear_action(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *self  = static_cast<AudioSample *>(ptr);
+            AudioSample * const self  = static_cast<AudioSample *>(ptr);
             if (self == NULL)
                 return STATUS_BAD_ARGUMENTS;
             if (self->pPort != NULL)
@@ -1197,27 +1242,38 @@ namespace lsp
 
         status_t AudioSample::slot_drag_request(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *_this  = static_cast<AudioSample *>(ptr);
-            if (_this == NULL)
+            AudioSample * const self  = static_cast<AudioSample *>(ptr);
+            if (self == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            if (_this->wWidget == NULL)
+            if (self->wWidget == NULL)
                 return STATUS_BAD_STATE;
 
-            tk::Display *dpy    = _this->wWidget->display();
+            tk::Display *dpy    = self->wWidget->display();
             if (dpy == NULL)
                 return STATUS_BAD_STATE;
 
             ws::rectangle_t r;
-            _this->wWidget->get_rectangle(&r);
+            self->wWidget->get_rectangle(&r);
 
             const char * const *ctype = dpy->get_drag_mime_types();
-            ssize_t idx = _this->pDragInSink->select_mime_type(ctype);
+            ssize_t idx = self->pDragInSink->select_mime_type(ctype);
             if (idx >= 0)
             {
-                dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
+                dpy->accept_drag(self->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
             }
+
+            return STATUS_OK;
+        }
+
+        status_t AudioSample::slot_timer_status(ws::timestamp_t sched, ws::timestamp_t time, void *arg)
+        {
+            AudioSample * const self  = static_cast<AudioSample *>(arg);
+            if (self == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            self->set_loading_status();
 
             return STATUS_OK;
         }

@@ -330,6 +330,13 @@ namespace lsp
         bool            is_enum_unit(size_t unit);
 
         /**
+         * Check that port is sorted
+         * @param p port
+         * @return true if port is sorted
+         */
+        bool            is_sorted(const port_t *p);
+
+        /**
          * Check that unit uses logarithmic rule
          * @param unit unit_t unit
          * @return true if unit uses logarithmic rule

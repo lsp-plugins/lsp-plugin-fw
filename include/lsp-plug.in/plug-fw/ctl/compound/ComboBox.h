@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 июн. 2021 г.
@@ -44,6 +44,14 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                typedef struct port_item_t
+                {
+                    tk::ListBoxItem        *pItem;
+                    ssize_t                 nIndex;
+                    ssize_t                 nKey;
+                } port_item_t;
+
+            protected:
                 ui::IPort                  *pPort;
 
                 ctl::Color                  sColor;
@@ -61,6 +69,7 @@ namespace lsp
 
                 ctl::LCString               sEmptyText;
                 lltl::parray<ListBoxItem>   vItems;             // Custom items
+                lltl::darray<port_item_t>   vPortItems;
 
                 float                       fMin;
                 float                       fMax;
@@ -68,12 +77,18 @@ namespace lsp
 
             protected:
                 static status_t     slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_mouse_double_click(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                static ssize_t      compare_port_item(const port_item_t *a, const port_item_t *b);
 
             protected:
                 virtual void        sync_metadata(ui::IPort *port) override;
                 void                submit_value();
+                void                submit_default_value();
                 void                do_destroy();
                 void                update_selection();
+                void                drop_port_items();
 
             public:
                 explicit ComboBox(ui::IWrapper *wrapper, tk::ComboBox *widget);

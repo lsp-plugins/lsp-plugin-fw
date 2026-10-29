@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -96,6 +96,8 @@ namespace lsp
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
+                tk::Timer           sStatusTimer;
+                size_t              nLoadingDelay;
                 bool                bLoadPreview;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
@@ -163,6 +165,8 @@ namespace lsp
                 static status_t     slot_popup_clear_action(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_drag_request(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_timer_status(ws::timestamp_t sched, ws::timestamp_t time, void *arg);
+
             protected:
                 void                show_file_dialog();
                 void                update_path();
@@ -172,6 +176,7 @@ namespace lsp
                 void                sync_labels();
                 void                sync_markers();
                 void                sync_mesh();
+                void                set_loading_status();
                 tk::Menu           *create_menu();
                 tk::MenuItem       *create_menu_item(tk::Menu *menu);
 
