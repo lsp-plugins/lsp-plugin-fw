@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.42 ===
-
+* Fixed linkage of launcher application when test mode is enabled.
 
 === 1.0.41 ===
 * Fixed recent VST3 sizing issues in new Ardour 8.9 version.
