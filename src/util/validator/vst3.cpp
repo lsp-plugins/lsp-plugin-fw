@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 янв. 2024 г.
@@ -125,8 +125,9 @@ namespace lsp
 
                 // Process VST3 identifier for processor (DSP)
                 if (!meta::uid_vst3_to_tuid(tuid, uids->vst3))
-                    validation_error(ctx, "Plugin uid='%s', failed to parse VST3 processor (DSP) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters",
-                        meta->uid, uids->vst3);
+                    validation_error(ctx, "Plugin uid='%s', failed to parse VST3 processor (DSP) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters (current: %d)",
+                        meta->uid, uids->vst3,
+                        int(strlen(uids->vst3)));
 
                 if ((vst3_id = meta::uid_tuid_to_vst3(vst3_iid, tuid)) != NULL)
                 {
